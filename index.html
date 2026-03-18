@@ -627,7 +627,7 @@ function makeHoleCard(h){
 
   
   const kkSection=G.kitklang.on?`<div class="kk-wrap">
-    <div class="kk-title">💰 กองกลาง <span style="color:var(--cream-m);font-size:9px;letter-spacing:1px">(น้ำ+ทราย+3พัต = 20฿/คน/หลุม รวมกัน)</span></div>
+    <div class="kk-title">💰 กองกลาง <span style="color:var(--cream-m);font-size:9px;letter-spacing:1px">(น้ำ 20฿ · ทราย 20฿ · 3พัต 20฿ · ครบ 3 = 60฿)</span></div>
     ${players.map((_,p)=>`
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:7px;flex-wrap:wrap">
         <span style="font-size:13px;color:var(--cream);min-width:75px;flex-shrink:0">${players[p].name}</span>
@@ -991,20 +991,20 @@ function calcDragonBite(){
 // water/sand/putt3: flat 20฿/hole/player (40฿ holes 9,18) regardless of count
 // birdie: auto-detected from score, 100฿ (200฿ holes 9,18)
 function kkAdd(h,p,type){
-  // water/sand/putt3: flat 20฿ always — no turbo, no special hole
   if(type==='muligan'){
     const muliganCount=kitklangLog.filter(e=>e.p===p&&e.type==='muligan').length;
     const amt=muliganCount===0&&h===0?0:100;
     kitklangLog.push({h,p,type,label:'มูลิแกน',amt,icon:'🔄',name:players[p].name,hole:h+1});
   } else {
-    const alreadyCharged=kitklangLog.some(e=>e.h===h&&e.p===p&&['water','sand','putt3'].includes(e.type));
-    const amt=20; // flat 20฿ always, no turbo, no special hole
+    // water/sand/putt3: each 20฿ per event, but only ONE charge per type per player per hole
+    const alreadyCharged=kitklangLog.some(e=>e.h===h&&e.p===p&&e.type===type&&!e.free);
     const labels={water:'น้ำ',sand:'ทราย',putt3:'3พัต'};
     const icons={water:'💧',sand:'🏖',putt3:'⛳'};
     if(alreadyCharged){
+      // Already charged this type this hole — log as duplicate but don't charge again
       kitklangLog.push({h,p,type,label:labels[type],amt:0,icon:icons[type],name:players[p].name,hole:h+1,free:true});
     } else {
-      kitklangLog.push({h,p,type,label:labels[type],amt,icon:icons[type],name:players[p].name,hole:h+1});
+      kitklangLog.push({h,p,type,label:labels[type],amt:20,icon:icons[type],name:players[p].name,hole:h+1});
     }
   }
   // Flash feedback
@@ -1022,7 +1022,13 @@ function kkRemove(h,p,type){
   // Recalculate charges: if water/sand/putt3 remain for this hole/player, ensure first one is charged
   const remaining=kitklangLog.filter(e=>e.h===h&&e.p===p&&['water','sand','putt3'].includes(e.type));
   if(remaining.length>0){
-    remaining.forEach((e,i)=>{e.amt=i===0?20:0;e.free=i>0;});
+    // Each type charged independently — first occurrence of each type = 20, rest = 0
+    const countByType={water:0,sand:0,putt3:0};
+    remaining.forEach(e=>{
+      countByType[e.type]++;
+      e.amt=countByType[e.type]===1?20:0;
+      e.free=countByType[e.type]>1;
+    });
   }
   refreshKKButtons(h,p);
   autoSave();
@@ -1055,8 +1061,9 @@ function refreshKKButtons(h,p){
   // Update hole charge indicator
   const ind=document.getElementById(`kk-ind-${h}-${p}`);
   if(ind){
-    const hasCharge=kitklangLog.some(e=>e.h===h&&e.p===p&&['water','sand','putt3'].includes(e.type)&&!e.free);
-    ind.textContent=hasCharge?'จ่าย 20฿':'';
+    const charged=kitklangLog.filter(e=>e.h===h&&e.p===p&&['water','sand','putt3'].includes(e.type)&&!e.free);
+    const total=charged.length*20;
+    ind.textContent=total>0?`จ่าย ${total}฿`:'';
     ind.style.color='var(--lose)';
   }
 }
