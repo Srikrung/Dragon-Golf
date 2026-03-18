@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Dragon Golf</title>
+<title>Dragon Golf v2</title>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -236,6 +236,31 @@ select option{background:var(--mg)}
 #saving-ov.show{display:flex}
 #cap{background:var(--dg);padding:18px}
 
+/* PROGRESS BAR */
+.prog-dot{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.08);transition:background .2s,transform .15s;cursor:pointer}
+.prog-dot.done{background:rgba(200,53,42,0.45)}
+.prog-dot.scored{background:rgba(200,53,42,0.7)}
+.prog-dot.current{background:var(--dr);transform:scaleY(1.5)}
+.prog-dot.turbo-dot.done,.prog-dot.turbo-dot.scored{background:rgba(255,200,0,0.5)}
+.prog-dot.turbo-dot.current{background:#ffc800}
+
+/* SCORE STRIP */
+.strip-hdr{background:var(--lg);padding:5px 12px;display:flex;gap:6px;align-items:center}
+.strip-hdr span{font-size:10px;color:var(--cream-m);letter-spacing:1px}
+.strip-row{display:flex;align-items:center;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.04);gap:6px}
+.strip-row:last-child{border-bottom:none}
+.strip-name{font-size:14px;color:var(--cream);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip-val{font-size:13px;min-width:30px;text-align:center;color:var(--cream-m)}
+.strip-tot{font-size:15px;font-weight:600;color:var(--cream);min-width:34px;text-align:center}
+.strip-pm{font-size:13px;min-width:34px;text-align:center}
+.strip-net{font-size:14px;font-weight:600;color:var(--gold);min-width:34px;text-align:center}
+
+/* HOLE SLIDE */
+.hole-in{animation:hIn .18s ease-out}
+.hole-back{animation:hBack .18s ease-out}
+@keyframes hIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes hBack{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+
 @media(max-width:380px){
   .sw-btn{width:28px;height:44px;font-size:20px}.sw-disp{font-size:21px}.score-widget{min-width:60px}
   .player-row{grid-template-columns:26px 1fr auto auto}
@@ -275,7 +300,7 @@ select option{background:var(--mg)}
 <div class="screen active" id="scr-setup">
   <div class="sec">
     <div class="sec-title">ข้อมูลสนาม</div>
-    <div class="form-row"><span class="form-label">สนาม</span><input type="text" id="course-name" value="Dragon Golf Club" style="width:220px"></div>
+    <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:6px"><span class="form-label">สนาม</span><div style="width:100%;max-width:420px"><div style="position:relative;margin-bottom:6px"><input type="text" id="course-search" placeholder="🔍 ค้นหาสนาม..." style="width:100%;padding-right:32px" oninput="filterCourses()" onfocus="showCourseList()" autocomplete="off"><span onclick="clearCourseSearch()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--cream-m);font-size:16px">✕</span></div><div id="course-dropdown" style="display:none;background:var(--mg);border:1px solid var(--dr-d);border-radius:5px;max-height:200px;overflow-y:auto;margin-bottom:6px"><div id="course-list"></div></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><input type="text" id="course-name" value="Dragon Golf Club" style="flex:1;min-width:180px" placeholder="ชื่อสนาม"><select id="course-layout" style="display:none;min-width:150px"></select></div></div></div>
     <div class="form-row"><span class="form-label">วันที่</span><input type="date" id="game-date"><button class="today-btn" onclick="setToday()">วันนี้</button></div>
     <div class="form-row"><span class="form-label">ผู้เล่น</span>
       <select id="num-players" onchange="renderPlayerRows()">
@@ -403,12 +428,31 @@ select option{background:var(--mg)}
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
 </div>
 
-<!-- ═══ SCORECARD ═══ -->
+<!-- ═══ SCORECARD v2 — ONE HOLE PER PAGE ═══ -->
 <div class="screen" id="scr-scorecard">
-  <div id="hole-cards"></div>
-  <div id="totals-wrap"></div>
-  <div style="text-align:center;margin-top:14px">
-    <button class="btn btn-primary btn-lg" onclick="goResults()">ดูผลลัพธ์ →</button>
+  <!-- Progress Bar -->
+  <div id="progress-bar-wrap" style="padding:10px 14px 6px;background:var(--mg);border-bottom:1px solid rgba(200,53,42,0.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+      <span style="font-size:11px;color:var(--cream-m);letter-spacing:2px">HOLE</span>
+      <span style="font-size:13px;color:var(--cream)" id="prog-label">1 / 18</span>
+      <span style="font-size:11px;color:var(--cream-m);letter-spacing:1px" id="prog-total">Par —</span>
+    </div>
+    <div id="progress-dots" style="display:flex;gap:3px"></div>
+  </div>
+
+  <!-- Single Hole Card -->
+  <div id="single-hole-wrap" style="padding:0 0 20px"></div>
+
+  <!-- Score Summary Strip -->
+  <div id="score-strip" style="margin:0 14px 10px;background:var(--mg);border:1px solid rgba(200,53,42,0.2);border-radius:7px;overflow:hidden"></div>
+
+  <!-- Navigation -->
+  <div style="display:flex;align-items:center;gap:8px;padding:0 14px;margin-bottom:16px">
+    <button class="btn" id="btn-prev" onclick="holeNav(-1)" style="flex:1;font-size:16px">← ก่อนหน้า</button>
+    <button class="btn btn-primary" id="btn-next" onclick="holeNav(1)" style="flex:1;font-size:16px">ถัดไป →</button>
+  </div>
+  <div style="text-align:center;padding:0 14px 30px">
+    <button class="btn btn-primary" onclick="goResults()" style="width:100%;font-size:16px">🏆 ดูผลลัพธ์</button>
   </div>
 </div>
 
@@ -437,6 +481,108 @@ select option{background:var(--mg)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
+// ── GOLF COURSE DATABASE ──
+const GOLF_DB=[
+  {name:'Alpine Golf Club',province:'กรุงเทพฯ',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Amata Spring Country Club',province:'ชลบุรี',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Cascata Golf Club',province:'กรุงเทพฯ',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Krungthep Kreetha Sports Club',province:'กรุงเทพฯ',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Lam Luk Ka Country Club',province:'ปทุมธานี',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Course 1',holes:18,par:72},{name:'Course 2',holes:18,par:72}]},
+  {name:'Royal Gems Golf City',province:'นครปฐม',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Stonehill Golf Club',province:'ปทุมธานี',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Summit Windmill Golf Club',province:'กรุงเทพฯ',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Thai Country Club',province:'ฉะเชิงเทรา',region:'กรุงเทพฯ และปริมณฑล',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Burapha Golf Club',province:'ชลบุรี',region:'ชลบุรี / พัทยา',courses:[{name:'East Course',holes:18,par:72},{name:'West Course',holes:18,par:72}]},
+  {name:'Chee Chan Golf Resort',province:'ชลบุรี',region:'ชลบุรี / พัทยา',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Laem Chabang International',province:'ชลบุรี',region:'ชลบุรี / พัทยา',courses:[{name:'Mountain Course',holes:9,par:36},{name:'Lake Course',holes:9,par:36},{name:'Valley Course',holes:9,par:36}]},
+  {name:'Pattana Golf Club & Resort',province:'ชลบุรี',region:'ชลบุรี / พัทยา',courses:[{name:'Championship Course',holes:18,par:72},{name:'Executive Course',holes:9,par:36}]},
+  {name:'Phoenix Gold Golf & Country Club',province:'ชลบุรี',region:'ชลบุรี / พัทยา',courses:[{name:'Ocean Course',holes:9,par:36},{name:'Lake Course',holes:9,par:36},{name:'Mountain Course',holes:9,par:36}]},
+  {name:'Siam Country Club',province:'ชลบุรี',region:'ชลบุรี / พัทยา',courses:[{name:'Old Course',holes:18,par:72},{name:'Plantation Course',holes:27,par:108},{name:'Waterside Course',holes:18,par:72},{name:'Rolling Hills Course',holes:18,par:72}]},
+  {name:'St Andrews 2000',province:'ระยอง',region:'ชลบุรี / พัทยา',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Black Mountain Golf Club',province:'ประจวบคีรีขันธ์',region:'หัวหิน / ประจวบฯ',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Palm Hills Golf Club',province:'ประจวบคีรีขันธ์',region:'หัวหิน / ประจวบฯ',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Pineapple Valley Golf Club',province:'ประจวบคีรีขันธ์',region:'หัวหิน / ประจวบฯ',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Royal Hua Hin Golf Course',province:'ประจวบคีรีขันธ์',region:'หัวหิน / ประจวบฯ',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Springfield Royal Country Club',province:'ประจวบคีรีขันธ์',region:'หัวหิน / ประจวบฯ',courses:[{name:'Valley Course',holes:18,par:72},{name:'Mountain Course',holes:9,par:36}]},
+  {name:'Chiang Mai Highlands Golf Club',province:'เชียงใหม่',region:'ภาคเหนือ',courses:[{name:'Highland Course',holes:18,par:72},{name:'Valley Course',holes:9,par:36}]},
+  {name:'Gassan Khuntan Golf & Resort',province:'ลำพูน',region:'ภาคเหนือ',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Gassan Lake City Golf Club',province:'เชียงใหม่',region:'ภาคเหนือ',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Gassan Panorama Golf Club',province:'เชียงใหม่',region:'ภาคเหนือ',courses:[{name:'Panorama Course',holes:18,par:72}]},
+  {name:'Lanna Golf Club',province:'เชียงใหม่',region:'ภาคเหนือ',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Summit Green Valley Chiang Mai',province:'เชียงใหม่',region:'ภาคเหนือ',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Santiburi Chiang Rai Country Club',province:'เชียงราย',region:'ภาคเหนือ',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Kirimaya Golf Resort & Spa',province:'นครราชสีมา',region:'ภาคอีสาน',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Rooks Korat Country Club',province:'นครราชสีมา',region:'ภาคอีสาน',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Suranaree Golf Club',province:'นครราชสีมา',region:'ภาคอีสาน',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Singha Park Khon Kaen Golf Club',province:'ขอนแก่น',region:'ภาคอีสาน',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Grand Prix Golf Club',province:'กาญจนบุรี',region:'ภาคกลาง',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Dragon Hills Golf & Country Club',province:'กาญจนบุรี',region:'ภาคกลาง',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Lopburi Army Golf Course',province:'ลพบุรี',region:'ภาคกลาง',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Narai Golf Course',province:'ลพบุรี',region:'ภาคกลาง',courses:[{name:'Main Course',holes:18,par:72}]},
+  {name:'Rayong Green Valley',province:'ระยอง',region:'ภาคตะวันออก',courses:[{name:'Valley Course',holes:18,par:72},{name:'Highland Course',holes:18,par:72}]},
+  {name:'Blue Canyon Country Club',province:'ภูเก็ต',region:'ภาคใต้',courses:[{name:'Canyon Course',holes:18,par:72},{name:'Lakes Course',holes:18,par:72}]},
+  {name:'Laguna Golf Phuket',province:'ภูเก็ต',region:'ภาคใต้',courses:[{name:'Championship Course',holes:18,par:71}]},
+  {name:'Red Mountain Golf Club Phuket',province:'ภูเก็ต',region:'ภาคใต้',courses:[{name:'Championship Course',holes:18,par:72}]},
+  {name:'Santiburi Samui Country Club',province:'สุราษฎร์ธานี',region:'ภาคใต้',courses:[{name:'Main Course',holes:18,par:72}]},
+];
+function searchCourses(q){
+  if(!q.trim())return GOLF_DB;
+  const lq=q.toLowerCase();
+  return GOLF_DB.filter(c=>c.name.toLowerCase().includes(lq)||c.province.toLowerCase().includes(lq)||c.region.toLowerCase().includes(lq));
+}
+function filterCourses(){
+  renderCourseList(searchCourses(document.getElementById('course-search').value));
+  document.getElementById('course-dropdown').style.display='block';
+}
+function showCourseList(){
+  renderCourseList(searchCourses(document.getElementById('course-search').value));
+  document.getElementById('course-dropdown').style.display='block';
+}
+function hideCourseList(){setTimeout(()=>{const d=document.getElementById('course-dropdown');if(d)d.style.display='none';},200);}
+function clearCourseSearch(){
+  document.getElementById('course-search').value='';
+  document.getElementById('course-dropdown').style.display='none';
+}
+function renderCourseList(list){
+  const el=document.getElementById('course-list');if(!el)return;
+  if(!list.length){el.innerHTML='<div style="padding:10px 12px;color:var(--cream-m);font-size:14px">ไม่พบสนามครับ</div>';return;}
+  const grouped={};
+  list.slice(0,60).forEach(c=>{if(!grouped[c.region])grouped[c.region]=[];grouped[c.region].push(c);});
+  let html='';
+  Object.entries(grouped).forEach(([region,courses])=>{
+    html+=`<div style="padding:5px 12px 3px;font-size:10px;letter-spacing:2px;color:var(--dr-l);background:rgba(0,0,0,0.2)">${region}</div>`;
+    courses.forEach(c=>{
+      const multi=c.courses.length>1;
+      html+=`<div onclick="selectCourse(this)" data-name="${c.name}" data-courses='${JSON.stringify(c.courses)}'
+        style="padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);font-size:14px;color:var(--cream)"
+        onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background=''">
+        ${c.name} <span style="font-size:11px;color:var(--cream-m)">${c.province}</span>
+        ${multi?`<span style="font-size:10px;background:rgba(200,53,42,0.15);color:var(--dr-l);padding:1px 7px;border-radius:10px;margin-left:5px">${c.courses.length} คอร์ส</span>`:''}
+      </div>`;
+    });
+  });
+  el.innerHTML=html;
+}
+function selectCourse(el){
+  const name=el.getAttribute('data-name');
+  const courses=JSON.parse(el.getAttribute('data-courses'));
+  document.getElementById('course-name').value=name;
+  document.getElementById('course-search').value=name;
+  document.getElementById('course-dropdown').style.display='none';
+  const sel=document.getElementById('course-layout');
+  if(courses.length>1){
+    sel.style.display='block';
+    sel.innerHTML=courses.map(c=>`<option value="${c.name}">${c.name} (${c.holes}H Par${c.par})</option>`).join('');
+    sel.onchange=()=>{document.getElementById('course-name').value=name+' — '+sel.value;};
+  } else {
+    sel.style.display='none';sel.innerHTML='';
+  }
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#course-search')&&!e.target.closest('#course-dropdown'))hideCourseList();
+});
+
+
 // ── STATE ──
 const DEF_PARS=[4,4,3,4,5,3,4,4,5,4,4,3,5,4,3,4,5,4];
 let pars=[...DEF_PARS],players=[],scores=[],savedGames=[],gameStarted=false;
@@ -517,16 +663,29 @@ function renderPlayerRows(){
   const TMS=['A','B','C','A','B','C'];
   wrap.innerHTML='';
   for(let i=0;i<n;i++){
-    wrap.innerHTML+=`<div class="player-row">
-      <div class="p-num">${i+1}</div>
-      <input type="text" class="pn" value="${prev[i]?.name||`ผู้เล่น ${NM[i]}`}" style="min-width:100px;flex:1">
-      <select class="pteam team-sel">
-        <option value="A"${(prev[i]?.team||TMS[i])==='A'?' selected':''}>ทีม A</option>
-        <option value="B"${(prev[i]?.team||TMS[i])==='B'?' selected':''}>ทีม B</option>
-        <option value="C"${(prev[i]?.team||TMS[i])==='C'?' selected':''}>ทีม C</option>
-      </select>
-      <input type="number" class="ph" min="0" max="54" value="${prev[i]?.hcp||'0'}" style="width:52px" placeholder="HCP">
-      <input type="number" class="ptarget" min="50" max="150" value="${prev[i]?.target||''}" style="width:58px" placeholder="ม้า">
+    wrap.innerHTML+=`<div class="player-row" style="display:block;padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div class="p-num">${i+1}</div>
+        <input type="text" class="pn" value="${prev[i]?.name||`ผู้เล่น ${NM[i]}`}" style="flex:1;min-width:100px" placeholder="ชื่อผู้เล่น">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:90px">
+          <span style="font-size:10px;color:var(--dr-l);letter-spacing:1px">ทีม</span>
+          <select class="pteam" style="padding:7px 8px;font-size:14px">
+            <option value="A"${(prev[i]?.team||TMS[i])==='A'?' selected':''}>🔵 ทีม A</option>
+            <option value="B"${(prev[i]?.team||TMS[i])==='B'?' selected':''}>🔴 ทีม B</option>
+            <option value="C"${(prev[i]?.team||TMS[i])==='C'?' selected':''}>🟢 ทีม C</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:70px">
+          <span style="font-size:10px;color:var(--cream-m);letter-spacing:1px">Handicap</span>
+          <input type="number" class="ph" min="0" max="54" value="${prev[i]?.hcp||'0'}" style="width:100%;text-align:center;padding:7px 4px;font-size:15px">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:70px">
+          <span style="font-size:10px;color:var(--gold);letter-spacing:1px">ม้า (เป้า)</span>
+          <input type="number" class="ptarget" min="50" max="150" value="${prev[i]?.target||''}" style="width:100%;text-align:center;padding:7px 4px;font-size:15px" placeholder="—">
+        </div>
+      </div>
     </div>`;
   }
 }
@@ -564,16 +723,129 @@ function startGame(){
   kitklangLog=[];
 
   gameStarted=true;
-  buildHoleCards(); updateTotals();
+  currentHole=0;
+  buildProgressBar();
+  showHole(0,'in');
+  updateScoreStrip();
   goTab('scorecard'); updateHdrInfo();
 }
 
-// ── HOLE CARDS ──
-function buildHoleCards(){
-  const wrap=document.getElementById('hole-cards');wrap.innerHTML='';
-  for(let h=0;h<18;h++)wrap.appendChild(makeHoleCard(h));
+// ── V2: SINGLE HOLE NAVIGATION ──
+let currentHole=0;
+
+function buildProgressBar(){
+  const dots=document.getElementById('progress-dots');
+  if(!dots)return;
+  dots.innerHTML='';
+  for(let h=0;h<18;h++){
+    const d=document.createElement('div');
+    d.className='prog-dot'+(isTurbo(h)?' turbo-dot':'');
+    d.id=`pd-${h}`;
+    d.title=`หลุม ${h+1}`;
+    d.onclick=()=>{const dir=h>currentHole?'in':'back';currentHole=h;showHole(h,dir);};
+    dots.appendChild(d);
+  }
+  updateProgressBar();
 }
 
+function updateProgressBar(){
+  for(let h=0;h<18;h++){
+    const d=document.getElementById(`pd-${h}`);
+    if(!d)continue;
+    d.className='prog-dot'+(isTurbo(h)?' turbo-dot':'');
+    const hasScore=players.some((_,p)=>scores[p][h]!==null);
+    if(h===currentHole)d.classList.add('current');
+    else if(hasScore)d.classList.add('scored');
+    else if(h<currentHole)d.classList.add('done');
+  }
+  document.getElementById('prog-label').textContent=`${currentHole+1} / 18`;
+  document.getElementById('prog-total').textContent=`Par ${pars[currentHole]}${isTurbo(currentHole)?' 🔥':''}`;
+}
+
+function holeNav(dir){
+  const next=currentHole+dir;
+  if(next<0||next>17)return;
+  currentHole=next;
+  showHole(currentHole,dir>0?'in':'back');
+}
+
+function showHole(h,dir='in'){
+  currentHole=h;
+  const wrap=document.getElementById('single-hole-wrap');
+  if(!wrap)return;
+  const card=makeHoleCard(h);
+  card.className='hole-card'+(dir==='in'?' hole-in':' hole-back');
+  wrap.innerHTML='';
+  wrap.appendChild(card);
+
+  // Re-attach olympic/onfar state
+  if(G.olympic.on&&olympicData[h]&&(olympicData[h].order.length>0||Object.keys(olympicData[h].status).length>0)){
+    setTimeout(()=>olyRenderHole(h),0);
+  }
+  if(G.onFar.on&&pars[h]===3&&onFarData[h]?.farthest!==null){
+    setTimeout(()=>restoreOnFarUI(h),0);
+  }
+  if(G.kitklang.on){
+    setTimeout(()=>{players.forEach((_,p)=>refreshKKButtons(h,p));},0);
+  }
+
+  // Update nav buttons
+  document.getElementById('btn-prev').disabled=h===0;
+  document.getElementById('btn-prev').style.opacity=h===0?'0.35':'1';
+  document.getElementById('btn-next').textContent=h===17?'หลุม 18 ✓':'ถัดไป →';
+
+  updateProgressBar();
+  updateScoreStrip();
+}
+
+function restoreOnFarUI(h){
+  players.forEach((_,pi)=>{
+    const btn=document.getElementById(`onfar-btn-${h}-${pi}`);
+    if(btn)btn.className=`onfar-btn${onFarData[h].farthest===pi?' sel':''}`;
+  });
+  const res=document.getElementById(`onfar-res-${h}`);
+  if(res)res.style.display=onFarData[h].farthest!==null?'flex':'none';
+  if(onFarData[h].result){
+    ['par','over'].forEach(r=>{
+      const b=document.getElementById(`onfar-${r}-${h}`);
+      if(b)b.className=`onfar-rb${onFarData[h].result===r?' '+(r==='par'?'par':'over'):''}`;
+    });
+  }
+}
+
+function updateScoreStrip(){
+  const strip=document.getElementById('score-strip');
+  if(!strip||!players.length)return;
+  const tp=totPar();
+  strip.innerHTML=`
+    <div class="strip-hdr">
+      <span style="flex:1">ผู้เล่น</span>
+      <span class="strip-val">F9</span><span class="strip-val">B9</span>
+      <span class="strip-tot">รวม</span>
+      <span class="strip-pm">+/−</span>
+      <span class="strip-net">Net</span>
+    </div>
+    ${players.map((pl,p)=>{
+      const f9=scores[p].slice(0,9).reduce((a,b)=>a+(b||0),0);
+      const b9=scores[p].slice(9).reduce((a,b)=>a+(b||0),0);
+      const filledF=scores[p].slice(0,9).filter(s=>s!==null).length;
+      const filledB=scores[p].slice(9).filter(s=>s!==null).length;
+      const tot=f9+b9;const filled=filledF+filledB;const pm=tot-tp;
+      const pmS=filled?(pm<0?pm:pm>0?'+'+pm:'E'):'—';
+      const pmC=filled?(pm<0?'color:var(--win)':pm>0?'color:var(--lose)':'color:var(--cream-d)'):'color:var(--cream-m)';
+      const teamC={A:'color:#7ab8d8',B:'color:var(--dr-l)',C:'color:var(--win)'}[pl.team]||'';
+      return`<div class="strip-row">
+        <div class="strip-name">${pl.name} <span style="font-size:10px;${teamC}">${pl.team}</span></div>
+        <div class="strip-val">${filledF?f9:'—'}</div>
+        <div class="strip-val">${filledB?b9:'—'}</div>
+        <div class="strip-tot">${filled?tot:'—'}</div>
+        <div class="strip-pm" style="${pmC}">${pmS}</div>
+        <div class="strip-net">${filled?tot-pl.hcp:'—'}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ── HOLE CARD (single) ──
 function makeHoleCard(h){
   const div=document.createElement('div');
   div.className='hole-card';div.id=`hc-${h}`;
@@ -728,28 +1000,8 @@ function chPar(h,d){
 
 // ── TOTALS ──
 function updateTotals(){
-  const tp=totPar(),wrap=document.getElementById('totals-wrap');
-  if(!wrap||!players.length)return;
-  const rows=players.map((pl,p)=>{
-    const f9=scores[p].slice(0,9).reduce((a,b)=>a+(b||0),0);
-    const b9=scores[p].slice(9).reduce((a,b)=>a+(b||0),0);
-    const filledF=scores[p].slice(0,9).filter(s=>s!==null).length;
-    const filledB=scores[p].slice(9).filter(s=>s!==null).length;
-    const tot=f9+b9,filled=filledF+filledB,pm=tot-tp;
-    const pmS=filled?(pm<0?''+pm:pm>0?'+'+pm:'E'):'—';
-    const pmC=filled?(pm<0?'val-w':pm>0?'val-l':'val-e'):'';
-    return`<div class="tot-row">
-      <div class="tot-name">${pl.name}<span style="font-size:10px;color:var(--cream-m);margin-left:6px">ทีม ${pl.team}</span></div>
-      <div class="tot-cols">
-        <div class="tc"><div class="tc-lbl">F9</div><div class="tc-val">${filledF?f9:'—'}</div></div>
-        <div class="tc"><div class="tc-lbl">B9</div><div class="tc-val">${filledB?b9:'—'}</div></div>
-        <div class="tc"><div class="tc-lbl">รวม</div><div class="tc-val">${filled?tot:'—'}</div></div>
-        <div class="tc"><div class="tc-lbl">+/−</div><div class="tc-val ${pmC}">${pmS}</div></div>
-        <div class="tc"><div class="tc-lbl">Net</div><div class="tc-val val-gold">${filled?tot-pl.hcp:'—'}</div></div>
-      </div>
-    </div>`;
-  }).join('');
-  wrap.innerHTML=`<div class="totals-card"><div class="totals-hdr">สรุปสกอร์ — Par ${tp}</div>${rows}</div>`;
+  updateScoreStrip();
+  updateProgressBar();
 }
 
 // ── OLYMPIC DRAGON ──
@@ -1307,7 +1559,58 @@ function buildResults(){
         </div>`).join('')}
     </div>
     ${moneyHTML}${txHTML}${teamHTML}${kkHTML}
-    <div style="text-align:center;padding:14px 0 4px;font-size:12px;color:var(--cream-m);letter-spacing:2px">🐉 DRAGON GOLF · ${ds}</div>`;
+    <div style="text-align:center;padding:14px 0 4px;font-size:12px;color:var(--cream-m);letter-spacing:2px">🐉 DRAGON GOLF · ${ds}</div>
+    <div style="font-size:11px;letter-spacing:3px;color:var(--dr-l);margin:16px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--dr-d)">สกอร์แต่ละหลุม</div>
+    <div style="overflow-x:auto;border-radius:5px;border:1px solid var(--dr-d);margin-bottom:18px">
+      <table style="width:100%;border-collapse:collapse;min-width:600px">
+        <thead style="background:var(--lg)">
+          <tr>
+            <th style="text-align:left;padding:9px 10px;font-size:13px;color:var(--dr-l);white-space:nowrap">ผู้เล่น</th>
+            ${Array.from({length:18},(_,i)=>`<th style="font-size:12px;color:var(--cream-m);padding:7px 3px;text-align:center">${i+1}</th>`).join('')}
+            <th style="font-size:12px;color:var(--cream-m);padding:7px 5px;text-align:center">F9</th>
+            <th style="font-size:12px;color:var(--cream-m);padding:7px 5px;text-align:center">B9</th>
+            <th style="font-size:13px;color:var(--dr-l);padding:7px 5px;text-align:center">รวม</th>
+            <th style="font-size:13px;color:var(--gold);padding:7px 5px;text-align:center">Net</th>
+          </tr>
+          <tr style="background:rgba(0,0,0,0.25)">
+            <td style="text-align:left;padding:5px 10px;font-size:12px;color:var(--cream-m)">Par</td>
+            ${pars.map(p=>`<td style="font-size:12px;color:var(--cream-m);text-align:center;padding:5px 3px">${p}</td>`).join('')}
+            <td style="font-size:12px;color:var(--cream-m);text-align:center">${pars.slice(0,9).reduce((a,b)=>a+b,0)}</td>
+            <td style="font-size:12px;color:var(--cream-m);text-align:center">${pars.slice(9).reduce((a,b)=>a+b,0)}</td>
+            <td style="font-size:13px;color:var(--cream-d);text-align:center;font-weight:600">${tp}</td>
+            <td style="color:var(--cream-m);text-align:center">—</td>
+          </tr>
+        </thead>
+        <tbody>
+          ${stats.map(st=>{
+            const cells=Array.from({length:18},(_,h)=>{
+              const s=scores[st.p][h];
+              if(s===null)return`<td style="text-align:center;color:var(--cream-m);font-size:13px;padding:6px 2px">—</td>`;
+              const d=s-pars[h];
+              let sty='';
+              if(d<=-2)sty='background:var(--gold);color:var(--dg);border-radius:50%;font-weight:bold';
+              else if(d===-1)sty='background:#1a4a2e;color:#5cc98a;border-radius:50%';
+              else if(d===1)sty='background:#5a1e1e;color:#e06060';
+              else if(d>=2)sty='background:#3a0e0e;color:#c04040';
+              return`<td style="text-align:center;padding:5px 2px"><span style="display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;font-size:13px;${sty}">${s}</span></td>`;
+            }).join('');
+            const monV=total[st.p];
+            return`<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">
+              <td style="text-align:left;padding:7px 10px;white-space:nowrap;font-size:14px;color:var(--cream)">${st.name}<br><span style="font-size:10px;color:var(--cream-m)">ทีม ${st.team}</span></td>
+              ${cells}
+              <td style="font-size:14px;color:var(--cream-d);text-align:center">${st.filled?st.f9:'—'}</td>
+              <td style="font-size:14px;color:var(--cream-d);text-align:center">${st.filled?st.b9:'—'}</td>
+              <td style="font-size:15px;font-weight:600;color:var(--cream);text-align:center">${st.filled?st.tot:'—'}</td>
+              <td style="font-size:15px;font-weight:600;color:var(--gold);text-align:center">${st.filled?st.net:'—'}${monV&&monV!==0?'<br><span style="font-size:10px;color:'+(monV>0?'var(--win)':'var(--lose)')+'">'+( monV>0?'+':'')+monV+'฿</span>':''}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px;background:rgba(200,53,42,0.07);border:1px solid rgba(200,53,42,0.3);border-radius:20px;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center">
+      <span style="font-size:13px;color:var(--cream-m)">⛳ รู้ไหม? ประกันกอล์ฟครอบคลุมถึง Hole-in-One โบนัสด้วยนะ</span>
+      <a href="https://insure.724.co.th/golf-insure/u/AM00035138" target="_blank" style="font-size:13px;color:var(--dr-l);text-decoration:none;border-bottom:1px solid rgba(200,53,42,0.4);white-space:nowrap;flex-shrink:0">ดูรายละเอียด →</a>
+    </div>`;
 }
 
 // ── SAVE ──
@@ -1362,8 +1665,8 @@ function newGame(){
   if(!confirm('เริ่มเกมใหม่?'))return;
   gameStarted=false;players=[];scores=[];olympicData=[];onFarData=[];kitklangLog=[];
   clearSession();
-  document.getElementById('hole-cards').innerHTML='';
-  document.getElementById('totals-wrap').innerHTML='';
+  document.getElementById('single-hole-wrap').innerHTML='';
+  document.getElementById('score-strip').innerHTML='';
   goTab('setup');
 }
 function updateHdrInfo(){
@@ -1372,7 +1675,7 @@ function updateHdrInfo(){
 }
 
 // ── SESSION ──
-const SESSION_KEY='dragon_golf_v1';
+const SESSION_KEY='dragon_golf_v2';
 function getSessionData(){
   return{
     v:1,ts:Date.now(),
@@ -1445,36 +1748,11 @@ function applySession(data){
   document.getElementById('game-date').value=data.gameDate||'';
 
   gameStarted=true;
+  currentHole=0;
   buildTurboGrid();
-  buildHoleCards();
-  updateTotals();
-
-  // Restore olympic UI state
-  for(let h=0;h<18;h++){
-    if(olympicData[h]&&(olympicData[h].order.length>0||Object.keys(olympicData[h].status).length>0)){
-      olyRenderHole(h);
-    }
-    // Restore onFar UI
-    if(onFarData[h]&&onFarData[h].farthest!==null){
-      players.forEach((_,p)=>{
-        const btn=document.getElementById(`onfar-btn-${h}-${p}`);
-        if(btn)btn.className=`onfar-btn${onFarData[h].farthest===p?' sel':''}`;
-      });
-      const res=document.getElementById(`onfar-res-${h}`);
-      if(res)res.style.display='flex';
-      if(onFarData[h].result){
-        ['par','over'].forEach(r=>{
-          const b=document.getElementById(`onfar-${r}-${h}`);
-          if(b)b.className=`onfar-rb${onFarData[h].result===r?' '+(r==='par'?'par':'over'):''}`;
-        });
-        const parts=players.map((pl,p)=>{const v=calcOnFarHole(h)[p];if(!v)return null;
-          return`<span style="color:${v>0?'var(--win)':'var(--lose)'}">${pl.name}: ${v>0?'+':''}${v}฿</span>`;
-        }).filter(Boolean);
-        const el=document.getElementById(`onfar-sum-${h}`);
-        if(el)el.innerHTML=parts.join(' | ');
-      }
-    }
-  }
+  buildProgressBar();
+  showHole(currentHole,'in');
+  updateScoreStrip();
 
   goTab('scorecard');
   updateHdrInfo();
@@ -1485,7 +1763,7 @@ function exportSession(){
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   const date=document.getElementById('game-date').value||'session';
-  a.download=`dragon-golf-${date}.json`;
+  a.download=`dragon-golf-v2-${date}.json`;
   a.href=URL.createObjectURL(blob);a.click();
 }
 function handleImport(e){
