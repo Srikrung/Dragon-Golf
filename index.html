@@ -178,6 +178,7 @@ select option{background:var(--mg)}
 .kk-btns{display:flex;gap:5px;flex-wrap:wrap}
 .kk-btn{padding:5px 10px;border-radius:5px;border:1px solid rgba(200,53,42,0.3);background:none;color:var(--cream-m);cursor:pointer;font-family:'Kanit',sans-serif;font-size:12px;transition:all .15s}
 .kk-btn:active{background:rgba(200,53,42,0.15);border-color:var(--dr);color:var(--dr-l)}
+.kk-btn.kk-active{background:rgba(200,53,42,0.2);border-color:var(--dr);color:var(--dr-l);font-weight:500}
 
 /* TOTALS */
 .totals-card{background:var(--mg);border:1px solid var(--dr-d);border-radius:8px;overflow:hidden;margin-bottom:12px}
@@ -278,8 +279,8 @@ select option{background:var(--mg)}
     <div class="form-row"><span class="form-label">วันที่</span><input type="date" id="game-date"><button class="today-btn" onclick="setToday()">วันนี้</button></div>
     <div class="form-row"><span class="form-label">ผู้เล่น</span>
       <select id="num-players" onchange="renderPlayerRows()">
-        <option value="2">2 คน</option><option value="3">3 คน</option>
-        <option value="4" selected>4 คน</option><option value="5">5 คน</option><option value="6">6 คน</option>
+        <option value="2">2 คน</option><option value="3" selected>3 คน</option>
+        <option value="4">4 คน</option><option value="5">5 คน</option><option value="6">6 คน</option>
       </select>
     </div>
   </div>
@@ -318,7 +319,7 @@ select option{background:var(--mg)}
         <label class="toggle" onclick="e=>e.stopPropagation()"><input type="checkbox" id="g-olympic" onchange="toggleGame('olympic')"><span class="toggle-sl"></span></label>
       </div>
       <div class="g-body" id="gb-olympic"><div class="g-body-inner">
-        <div class="pt-row"><span class="pt-lbl">1 พ้อย =</span><input type="number" class="pt-val" id="gv-olympic" value="10" min="1"><span class="pt-unit">บาท</span></div>
+        <div class="pt-row"><span class="pt-lbl">1 พ้อย =</span><input type="number" class="pt-val" id="gv-olympic" value="20" min="1"><span class="pt-unit">บาท</span></div>
       </div></div>
     </div>
 
@@ -330,7 +331,7 @@ select option{background:var(--mg)}
         <label class="toggle" onclick="e=>e.stopPropagation()"><input type="checkbox" id="g-onFar" onchange="toggleGame('onFar')"><span class="toggle-sl"></span></label>
       </div>
       <div class="g-body" id="gb-onFar"><div class="g-body-inner">
-        <div class="pt-row"><span class="pt-lbl">1 พ้อย =</span><input type="number" class="pt-val" id="gv-onFar" value="10" min="1"><span class="pt-unit">บาท</span></div>
+        <div class="pt-row"><span class="pt-lbl">1 พ้อย =</span><input type="number" class="pt-val" id="gv-onFar" value="20" min="1"><span class="pt-unit">บาท</span></div>
       </div></div>
     </div>
 
@@ -355,12 +356,15 @@ select option{background:var(--mg)}
     <div class="game-row" id="gr-tangma">
       <div class="g-header" onclick="toggleGame('tangma')">
         <div class="g-icon">🐴</div>
-        <div class="g-info"><div class="g-name">ตั้งม้า</div><div class="g-desc">ตีเกินเป้า=จ่าย 20% · ตีต่ำกว่าเป้า=รับ 40% (เข้ากองกลาง)</div></div>
+        <div class="g-info"><div class="g-name">ตั้งม้า</div><div class="g-desc">ตีต่ำกว่าเป้า × 40฿ · ตีเกินเป้า × 20฿ (เข้ากองกลาง)</div></div>
         <label class="toggle" onclick="e=>e.stopPropagation()"><input type="checkbox" id="g-tangma" onchange="toggleGame('tangma')"><span class="toggle-sl"></span></label>
       </div>
       <div class="g-body" id="gb-tangma"><div class="g-body-inner">
-        <div class="pt-row"><span class="pt-lbl">เดิมพัน</span><input type="number" class="pt-val" id="gv-tangma" value="1000" min="1"><span class="pt-unit">บาท/คน</span></div>
-        <div style="font-size:11px;color:var(--cream-m)">* กรอกเป้าสกอร์ของแต่ละคนในช่อง "ม้า" ของผู้เล่น</div>
+        <div style="font-size:12px;color:var(--cream-m);line-height:1.9">
+          ตีต่ำกว่าเป้า : ส่วนต่าง × <strong style="color:var(--win)">40 บาท</strong> → รับจากกองกลาง<br>
+          ตีเกินเป้า : ส่วนต่าง × <strong style="color:var(--lose)">20 บาท</strong> → จ่ายเข้ากองกลาง<br>
+          <span style="color:var(--dr-l)">* กรอกเป้าสกอร์ "ม้า" ของแต่ละคนในช่องผู้เล่นด้านบน</span>
+        </div>
       </div></div>
     </div>
 
@@ -372,9 +376,10 @@ select option{background:var(--mg)}
         <label class="toggle" onclick="e=>e.stopPropagation()"><input type="checkbox" id="g-team" onchange="toggleGame('team')"><span class="toggle-sl"></span></label>
       </div>
       <div class="g-body" id="gb-team"><div class="g-body-inner">
-        <div class="pt-row"><span class="pt-lbl">งานเลี้ยง</span><input type="number" class="pt-val" id="gv-party" value="10000" min="0"><span class="pt-unit">บาท</span></div>
-        <div style="font-size:11px;color:var(--cream-m);margin-bottom:4px">1st=10% · 2nd=40% · 3rd=50%</div>
-        <div style="font-size:11px;color:var(--cream-m)">* กำหนดทีม A/B/C ในช่องผู้เล่นด้านบน</div>
+        <div style="font-size:12px;color:var(--cream-m);line-height:1.9">
+          ค่ากินเลี้ยง : 🥇 1st = <strong style="color:var(--win)">10%</strong> &nbsp;·&nbsp; 🥈 2nd = <strong style="color:var(--cream-d)">40%</strong> &nbsp;·&nbsp; 🥉 3rd = <strong style="color:var(--lose)">50%</strong><br>
+          <span style="color:var(--dr-l)">* กำหนดทีม A/B/C ในช่องผู้เล่นด้านบน</span>
+        </div>
       </div></div>
     </div>
   </div>
@@ -442,8 +447,8 @@ let G={
   olympic:{on:false,val:10},
   onFar:{on:false,val:10},
   kitklang:{on:false},
-  tangma:{on:false,val:1000},
-  team:{on:false,partyTotal:10000}
+  tangma:{on:false},
+  team:{on:false}
 };
 
 let olympicData=[], onFarData=[], kitklangLog=[];
@@ -553,8 +558,6 @@ function startGame(){
 
   G.olympic.val=Math.max(1,+document.getElementById('gv-olympic').value||10);
   G.onFar.val=Math.max(1,+document.getElementById('gv-onFar').value||10);
-  G.tangma.val=Math.max(1,+document.getElementById('gv-tangma').value||1000);
-  G.team.partyTotal=Math.max(0,+document.getElementById('gv-party').value||10000);
 
   olympicData=Array(18).fill(null).map(()=>({order:[],status:{},_chipMode:false}));
   onFarData=Array(18).fill(null).map(()=>({farthest:null,result:null}));
@@ -622,16 +625,22 @@ function makeHoleCard(h){
     <div class="onfar-sum" id="onfar-sum-${h}"></div>
   </div>`:'';
 
+  
   const kkSection=G.kitklang.on?`<div class="kk-wrap">
-    <div class="kk-title">💰 กองกลาง</div>
-    <div class="kk-btns">
-      ${players.map((_,p)=>`
-        <button class="kk-btn" onclick="kkAdd(${h},${p},'water')">💧 ${players[p].name}</button>
-        <button class="kk-btn" onclick="kkAdd(${h},${p},'sand')">🏖 ${players[p].name}</button>
-        <button class="kk-btn" onclick="kkAdd(${h},${p},'birdie')">🐦 ${players[p].name}</button>
-        <button class="kk-btn" onclick="kkAdd(${h},${p},'muligan')">🔄 ${players[p].name}</button>
-      `).join('')}
-    </div>
+    <div class="kk-title">💰 กองกลาง <span style="color:var(--cream-m);font-size:9px;letter-spacing:1px">(น้ำ+ทราย+3พัต = 20฿/คน/หลุม รวมกัน)</span></div>
+    ${players.map((_,p)=>`
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:7px;flex-wrap:wrap">
+        <span style="font-size:13px;color:var(--cream);min-width:75px;flex-shrink:0">${players[p].name}</span>
+        <button class="kk-btn" id="kk-${h}-${p}-water" data-label="💧 น้ำ"
+          onclick="kkAdd(${h},${p},'water')">💧 น้ำ</button>
+        <button class="kk-btn" id="kk-${h}-${p}-sand" data-label="🏖 ทราย"
+          onclick="kkAdd(${h},${p},'sand')">🏖 ทราย</button>
+        <button class="kk-btn" id="kk-${h}-${p}-putt3" data-label="⛳ 3พัต"
+          onclick="kkAdd(${h},${p},'putt3')">⛳ 3พัต</button>
+        <button class="kk-btn" onclick="kkAdd(${h},${p},'muligan')" style="border-color:rgba(200,168,75,0.3);color:var(--gold)">🔄 มูลิแกน</button>
+        <span style="font-size:11px" id="kk-ind-${h}-${p}"></span>
+      </div>`).join('')}
+    <div style="font-size:10px;color:var(--cream-m);margin-top:4px">🐦 เบอร์ดี้ดึงจากสกอร์อัตโนมัติ</div>
   </div>`:'';
 
   div.innerHTML=`
@@ -664,7 +673,9 @@ let rptT=null,rptI=null;
 function chScore(h,p,d){
   if(scores[p][h]===null)scores[p][h]=pars[h]+d;
   else scores[p][h]=Math.max(1,Math.min(20,scores[p][h]+d));
-  refWidget(h,p); updateTotals(); autoSave();
+  refWidget(h,p); updateTotals();
+  if(G.kitklang.on)kkAutoAddBirdie(h,p);
+  autoSave();
 }
 function startRpt(h,p,d){stopRpt();chScore(h,p,d);rptT=setTimeout(()=>{rptI=setInterval(()=>chScore(h,p,d),120);},380);}
 function stopRpt(){clearTimeout(rptT);clearInterval(rptI);rptT=null;rptI=null;}
@@ -977,20 +988,77 @@ function calcDragonBite(){
 }
 
 // ── กองกลาง ──
+// water/sand/putt3: flat 20฿/hole/player (40฿ holes 9,18) regardless of count
+// birdie: auto-detected from score, 100฿ (200฿ holes 9,18)
 function kkAdd(h,p,type){
-  const isSpecial=h===8||h===17;
-  const types={
-    water:{label:'น้ำ 3พัต',amt:isSpecial?40:20,icon:'💧'},
-    sand:{label:'ทราย 3พัต',amt:isSpecial?40:20,icon:'🏖'},
-    birdie:{label:'เบอร์ดี้',amt:isSpecial?200:100,icon:'🐦'},
-    muligan:{label:'มูลิแกน',amt:kitklangLog.filter(e=>e.p===p&&e.type==='muligan').length===0&&h===0?0:100,icon:'🔄'}
-  };
-  const t=types[type];
-  kitklangLog.push({h,p,type,label:t.label,amt:t.amt,icon:t.icon,name:players[p].name,hole:h+1});
+  // water/sand/putt3: flat 20฿ always — no turbo, no special hole
+  if(type==='muligan'){
+    const muliganCount=kitklangLog.filter(e=>e.p===p&&e.type==='muligan').length;
+    const amt=muliganCount===0&&h===0?0:100;
+    kitklangLog.push({h,p,type,label:'มูลิแกน',amt,icon:'🔄',name:players[p].name,hole:h+1});
+  } else {
+    const alreadyCharged=kitklangLog.some(e=>e.h===h&&e.p===p&&['water','sand','putt3'].includes(e.type));
+    const amt=20; // flat 20฿ always, no turbo, no special hole
+    const labels={water:'น้ำ',sand:'ทราย',putt3:'3พัต'};
+    const icons={water:'💧',sand:'🏖',putt3:'⛳'};
+    if(alreadyCharged){
+      kitklangLog.push({h,p,type,label:labels[type],amt:0,icon:icons[type],name:players[p].name,hole:h+1,free:true});
+    } else {
+      kitklangLog.push({h,p,type,label:labels[type],amt,icon:icons[type],name:players[p].name,hole:h+1});
+    }
+  }
   // Flash feedback
-  const btn=event.target;btn.style.background='rgba(200,53,42,0.3)';
-  setTimeout(()=>btn.style.background='',500);
+  const btn=event.target;
+  btn.style.background='rgba(200,53,42,0.3)';btn.style.color='var(--cream)';
+  setTimeout(()=>{btn.style.background='';btn.style.color='';},500);
+  refreshKKButtons(h,p);
   autoSave();
+}
+
+function kkRemove(h,p,type){
+  // Remove last entry of this type for this player at this hole
+  const idx=[...kitklangLog].map((e,i)=>({e,i})).reverse().find(({e})=>e.h===h&&e.p===p&&e.type===type);
+  if(idx){kitklangLog.splice(idx.i,1);}
+  // Recalculate charges: if water/sand/putt3 remain for this hole/player, ensure first one is charged
+  const remaining=kitklangLog.filter(e=>e.h===h&&e.p===p&&['water','sand','putt3'].includes(e.type));
+  if(remaining.length>0){
+    remaining.forEach((e,i)=>{e.amt=i===0?20:0;e.free=i>0;});
+  }
+  refreshKKButtons(h,p);
+  autoSave();
+}
+
+function kkAutoAddBirdie(h,p){
+  // Called when score is set - auto add/remove birdie log
+  const alreadyLogged=kitklangLog.some(e=>e.h===h&&e.p===p&&e.type==='birdie');
+  const isBirdie=scores[p][h]!==null&&scores[p][h]-pars[h]===-1;
+  if(isBirdie&&!alreadyLogged){
+    const isSpecial=h===8||h===17;
+    kitklangLog.push({h,p,type:'birdie',label:'เบอร์ดี้',amt:isSpecial?200:100,icon:'🐦',name:players[p].name,hole:h+1,auto:true});
+  } else if(!isBirdie&&alreadyLogged){
+    // Remove auto birdie
+    const idx=[...kitklangLog].map((e,i)=>({e,i})).reverse().find(({e})=>e.h===h&&e.p===p&&e.type==='birdie'&&e.auto);
+    if(idx)kitklangLog.splice(idx.i,1);
+  }
+}
+
+function refreshKKButtons(h,p){
+  ['water','sand','putt3'].forEach(type=>{
+    const btn=document.getElementById(`kk-${h}-${p}-${type}`);
+    if(!btn)return;
+    const count=kitklangLog.filter(e=>e.h===h&&e.p===p&&e.type===type).length;
+    const charged=kitklangLog.some(e=>e.h===h&&e.p===p&&e.type===type&&!e.free);
+    btn.classList.toggle('kk-active',count>0);
+    if(count>0)btn.innerHTML=btn.getAttribute('data-label')+` ×${count}`;
+    else btn.innerHTML=btn.getAttribute('data-label');
+  });
+  // Update hole charge indicator
+  const ind=document.getElementById(`kk-ind-${h}-${p}`);
+  if(ind){
+    const hasCharge=kitklangLog.some(e=>e.h===h&&e.p===p&&['water','sand','putt3'].includes(e.type)&&!e.free);
+    ind.textContent=hasCharge?'จ่าย 20฿':'';
+    ind.style.color='var(--lose)';
+  }
 }
 
 function calcKitklangPer(){
@@ -1013,22 +1081,28 @@ function buildKitklang(){
   // ตั้งม้า results
   let tangmaHTML='';
   if(G.tangma.on){
-    const stake=G.tangma.val;
     const rows=players.map((pl,p)=>{
-      const tot=scores[p].reduce((a,b)=>a+(b||0),0);
-      if(!pl.target||!tot)return`<div class="kk-log-item"><span class="kk-log-who">${pl.name}</span><span class="kk-log-what">ยังไม่ครบ</span><span>—</span></div>`;
+      const tot=scores[p].filter(s=>s!==null).length===18?scores[p].reduce((a,b)=>a+(b||0),0):null;
+      if(!pl.target)return`<div class="kk-log-item"><span class="kk-log-who">${pl.name}</span><span class="kk-log-what" style="color:var(--dr-l)">ยังไม่ได้ตั้งม้า</span><span>—</span></div>`;
+      if(tot===null)return`<div class="kk-log-item"><span class="kk-log-who">${pl.name}</span><span class="kk-log-what">ม้า ${pl.target} — ยังเล่นไม่ครบ</span><span style="color:var(--cream-m)">—</span></div>`;
       const diff=tot-pl.target;
-      let result='',color='',amt=0;
-      if(diff>0){result=`ตีเกิน ${diff} ชอต → จ่าย 20%`;color='var(--lose)';amt=Math.round(stake*0.2);}
-      else if(diff<0){result=`ตีต่ำกว่า ${Math.abs(diff)} ชอต → รับ 40%`;color='var(--win)';amt=Math.round(stake*0.4);}
-      else{result='ตรงม้าพอดี';color='var(--cream-m)';amt=0;}
+      let result='',color='',amt=0,sign='';
+      if(diff>0){
+        amt=diff*20;sign='-';color='var(--lose)';
+        result=`ตีเกิน ${diff} ชอต → ${diff}×20`;
+      } else if(diff<0){
+        amt=Math.abs(diff)*40;sign='+';color='var(--win)';
+        result=`ตีต่ำกว่า ${Math.abs(diff)} ชอต → ${Math.abs(diff)}×40`;
+      } else {
+        result='ตรงม้าพอดี ✓';color='var(--cream-m)';
+      }
       return`<div class="kk-log-item">
         <div><span class="kk-log-who">${pl.name}</span><br>
-          <span class="kk-log-what">ม้า ${pl.target} · ตีได้ ${tot||'—'}</span>
+          <span class="kk-log-what">ม้า ${pl.target} · ตีได้ ${tot}</span>
         </div>
         <div style="text-align:right">
           <div style="font-size:12px;color:${color}">${result}</div>
-          <div style="font-size:16px;font-weight:600;color:${color}">${amt?`${diff>0?'-':'+'}${amt}฿`:'-'}</div>
+          <div style="font-size:18px;font-weight:600;color:${color}">${amt?`${sign}${amt.toLocaleString()}฿`:'-'}</div>
         </div>
       </div>`;
     }).join('');
@@ -1039,9 +1113,9 @@ function buildKitklang(){
   const logRows=kitklangLog.length?[...kitklangLog].reverse().map(e=>`
     <div class="kk-log-item">
       <div><span class="kk-log-who">${e.icon} ${e.name}</span><br>
-        <span class="kk-log-what">${e.label} — หลุม ${e.hole}${e.h===8||e.h===17?' (×2)':''}</span>
+        <span class="kk-log-what">${e.label} — หลุม ${e.hole}${e.h===8||e.h===17?' (×2)':''}${e.auto?' (อัตโนมัติ)':''}${e.free?' (รวมอยู่แล้ว)':''}</span>
       </div>
-      <span class="kk-log-amt">+${e.amt}฿</span>
+      <span class="kk-log-amt" style="${e.amt===0?'color:var(--cream-m)':''}">${e.amt>0?'+'+e.amt+'฿':'—'}</span>
     </div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--cream-m);font-size:14px">ยังไม่มีรายการครับ</div>';
 
   el.innerHTML=`
@@ -1158,8 +1232,8 @@ function buildResults(){
   if(G.team.on){
     const tp2=calcTeamDragon();
     const sortedTeams=Object.entries(tp2).sort((a,b)=>b[1]-a[1]);
-    const party=G.team.partyTotal;
     const partyPct=[0.1,0.4,0.5];
+    const partyLabel=['10%','40%','50%'];
     const teamColors={A:'team-a',B:'team-b',C:'team-c'};
     teamHTML=`<div style="font-size:11px;letter-spacing:3px;color:var(--dr-l);margin:14px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--dr-d)">🤝 ผลทีม Dragon</div>
       ${sortedTeams.map(([team,pts],rank)=>`
@@ -1168,15 +1242,14 @@ function buildResults(){
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
               <div style="font-size:20px;font-weight:600;color:var(--cream)">${pts.toFixed(1)} แต้ม</div>
-              <div style="font-size:12px;color:var(--cream-m)">
-                ${players.filter(pl=>pl.team===team).map(pl=>pl.name).join(', ')}
+              <div style="font-size:12px;color:var(--cream-m)">${players.filter(pl=>pl.team===team).map(pl=>pl.name).join(', ')}</div>
+            </div>
+            <div style="text-align:right;background:rgba(0,0,0,0.25);padding:8px 14px;border-radius:6px">
+              <div style="font-size:11px;color:var(--cream-m);margin-bottom:2px">ออกค่ากินเลี้ยง</div>
+              <div style="font-size:24px;font-weight:600;color:${rank===0?'var(--win)':rank===1?'var(--cream-d)':'var(--lose)'}">
+                ${partyLabel[rank]}
               </div>
             </div>
-            ${party>0?`<div style="text-align:right">
-              <div style="font-size:11px;color:var(--cream-m)">ค่ากินเลี้ยง</div>
-              <div style="font-size:18px;font-weight:600;color:var(--lose)">${Math.round(party*partyPct[rank]).toLocaleString()}฿</div>
-              <div style="font-size:10px;color:var(--cream-m)">${(partyPct[rank]*100).toFixed(0)}%</div>
-            </div>`:''}
           </div>
         </div>`).join('')}`;
   }
